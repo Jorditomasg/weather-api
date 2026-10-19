@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      # Los tests no llaman a AEMET (usan MockRestServiceServer); la clave solo hace falta para arrancar el contexto
+      - name: Tests
+        run: ./mvnw -B verify
+        env:
+          AEMET_API_KEY: ci-dummy-key
