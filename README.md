@@ -1,25 +1,25 @@
 # weather-api
 
-API REST para consultar la predicción meteorológica del día siguiente en cualquier municipio de España, usando [AEMET OpenData](https://opendata.aemet.es/).
+REST API to get tomorrow's weather forecast for any municipality in Spain, backed by [AEMET OpenData](https://opendata.aemet.es/).
 
-## Requisitos
+## Requirements
 
 - Java 25
-- Una API key de AEMET ([solicitarla aquí](https://opendata.aemet.es/centrodedescargas/altaUsuario), llega por email)
+- An AEMET API key ([request it here](https://opendata.aemet.es/centrodedescargas/altaUsuario), it arrives by email)
 
-No hace falta instalar Maven: el proyecto incluye el wrapper `./mvnw`.
+Maven is not required: the project ships with the `./mvnw` wrapper.
 
-## Ejecución en local
+## Running locally
 
 ```bash
-cp .env.example .env          # y pega tu API key en AEMET_API_KEY
+cp .env.example .env          # then paste your API key into AEMET_API_KEY
 ./mvnw spring-boot:run
 ```
 
 - API: http://localhost:8080/api
 - Swagger UI: http://localhost:8080/swagger-ui.html
 
-También puede pasarse la clave como variable de entorno: `AEMET_API_KEY=... ./mvnw spring-boot:run`.
+The key can also be passed as an environment variable: `AEMET_API_KEY=... ./mvnw spring-boot:run`.
 
 ## Tests
 
@@ -27,13 +27,15 @@ También puede pasarse la clave como variable de entorno: `AEMET_API_KEY=... ./m
 ./mvnw test
 ```
 
-Los tests no llaman a AEMET: simulan sus respuestas, así que no necesitan API key ni red. Se ejecutan en cada push y pull request con GitHub Actions.
+Tests never call AEMET: its responses are simulated, so no API key or network is needed. They run on every push and pull request through GitHub Actions.
 
 ## Endpoints
 
-### Búsqueda de municipios
+The JSON field names and the `G_CEL` / `G_FAH` codes follow the contract given in the assignment.
 
-`GET /api/municipios?nombre=Ag`
+### Municipality search
+
+`GET /api/municipalities?name=Ag`
 
 ```json
 [
@@ -42,13 +44,13 @@ Los tests no llaman a AEMET: simulan sus respuestas, así que no necesitan API k
 ]
 ```
 
-La búsqueda es por prefijo, sin distinguir mayúsculas ni tildes, y devuelve los resultados ordenados alfabéticamente.
+Prefix search, case and accent insensitive, sorted alphabetically.
 
-### Predicción del día siguiente
+### Tomorrow's forecast
 
-`GET /api/municipios/{codigo}/prediccion?unidad=G_FAH`
+`GET /api/municipalities/{code}/forecast?unit=G_FAH`
 
-`unidad` es opcional (`G_CEL` por defecto, o `G_FAH`).
+`unit` is optional (`G_CEL` by default, or `G_FAH`).
 
 ```json
 {
@@ -63,33 +65,33 @@ La búsqueda es por prefijo, sin distinguir mayúsculas ni tildes, y devuelve lo
 }
 ```
 
-Errores (formato [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)): `400` parámetros inválidos, `404` sin predicción para mañana, `502` AEMET no disponible.
+Errors ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) format): `400` invalid parameters, `404` no forecast for tomorrow, `502` AEMET unavailable.
 
-## Arquitectura
+## Architecture
 
-Arquitectura hexagonal organizada por funcionalidad:
+Hexagonal architecture, organised by feature:
 
 ```
 es.asv.weather
-├── municipio/
-│   ├── domain/           Municipio, MunicipioRepository (puerto)
-│   ├── application/      BuscarMunicipios (caso de uso)
-│   └── infrastructure/   adaptador AEMET, controlador REST, configuración
-├── prediccion/
-│   ├── domain/           PrediccionDiaria, UnidadTemperatura, PrediccionRepository (puerto)
-│   ├── application/      ObtenerPrediccionManana (caso de uso)
-│   └── infrastructure/   adaptador AEMET, controlador REST, configuración
+├── municipality/
+│   ├── domain/           Municipality, MunicipalityRepository (port)
+│   ├── application/      SearchMunicipalities (use case)
+│   └── infrastructure/   AEMET adapter, REST controller, wiring
+├── forecast/
+│   ├── domain/           DailyForecast, TemperatureUnit, ForecastRepository (port)
+│   ├── application/      GetTomorrowForecast (use case)
+│   └── infrastructure/   AEMET adapter, REST controller, wiring
 └── shared/infrastructure/
-    ├── aemet/            AemetClient: doble llamada a AEMET y decodificación ISO-8859-15
-    └── web/              gestión global de errores
+    ├── aemet/            AemetClient: AEMET two-step call and ISO-8859-15 decoding
+    └── web/              global error handling
 ```
 
-- El **dominio** y los **casos de uso** no dependen de Spring ni de AEMET.
-- Los detalles de AEMET (prefijo `id` en los códigos, formato de fechas, periodos de 24/12/6 horas) se traducen en los adaptadores y no salen de ellos.
-- `shared` no depende de ninguna funcionalidad.
+- **Domain** and **use cases** depend neither on Spring nor on AEMET.
+- AEMET details (`id` prefix in codes, date format, 24/12/6 hour periods, Spanish field names) are translated inside the adapters and never leak out.
+- `shared` does not depend on any feature.
 
-### Decisiones
+### Decisions
 
-- **Temperatura media**: AEMET publica máxima y mínima, no la media. Se usa `(máxima + mínima) / 2`, redondeada a un decimal.
-- **Día siguiente**: se calcula en hora de `Europe/Madrid` (configurable), no en la del servidor.
-- **Probabilidad de precipitación**: se devuelven los periodos de 6 horas, como en el ejemplo del enunciado.
+- **Average temperature**: AEMET publishes max and min, not the mean. We use `(max + min) / 2`, rounded to one decimal.
+- **Tomorrow**: computed in `Europe/Madrid` time (configurable), not the server's.
+- **Precipitation probability**: 6 hour periods are returned, as in the assignment example.

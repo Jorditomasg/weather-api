@@ -17,7 +17,7 @@ jobs:
           java-version: 25
           cache: maven
 
-      # Los tests no llaman a AEMET (usan MockRestServiceServer); la clave solo hace falta para arrancar el contexto
+      # Tests never call AEMET (MockRestServiceServer); the key is only needed to start the Spring context
       - name: Tests
         run: ./mvnw -B verify
         env:

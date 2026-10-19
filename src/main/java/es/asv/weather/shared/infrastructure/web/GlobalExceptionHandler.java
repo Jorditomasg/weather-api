@@ -14,15 +14,15 @@ class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // AEMET caída, clave inválida o límite de peticiones: el fallo es del proveedor, no del cliente
+    // AEMET down, invalid key or rate limit: the upstream provider failed, not the client
     @ExceptionHandler({AemetException.class, RestClientException.class})
-    ProblemDetail aemetNoDisponible(RuntimeException e) {
-        log.error("Error consultando AEMET", e);
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, "El servicio de AEMET no está disponible");
+    ProblemDetail aemetUnavailable(RuntimeException e) {
+        log.error("Error calling AEMET", e);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, "AEMET service is unavailable");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    ProblemDetail peticionInvalida(IllegalArgumentException e) {
+    ProblemDetail badRequest(IllegalArgumentException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 }

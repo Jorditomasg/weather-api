@@ -1,5 +1,6 @@
 package es.asv.weather.shared.infrastructure.aemet;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -9,8 +10,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.net.URI;
 
 /**
- * AEMET responde en dos pasos: primero un sobre con la URL de los datos y después los datos,
- * servidos como text/plain en ISO-8859-15 (el conversor de String respeta ese charset).
+ * AEMET answers in two steps: first an envelope with the data URL, then the data itself,
+ * served as text/plain in ISO-8859-15 (the String converter honours that charset).
  */
 @Component
 public class AemetClient {
@@ -26,16 +27,19 @@ public class AemetClient {
         this.jsonMapper = jsonMapper;
     }
 
-    public <T> T get(String path, TypeReference<T> tipo) {
-        AemetRespuesta respuesta = restClient.get().uri(path).retrieve().body(AemetRespuesta.class);
-        if (respuesta == null || respuesta.estado() != 200) {
-            throw new AemetException("AEMET respondió con error en " + path + ": " + respuesta);
+    public <T> T get(String path, TypeReference<T> type) {
+        AemetEnvelope envelope = restClient.get().uri(path).retrieve().body(AemetEnvelope.class);
+        if (envelope == null || envelope.status() != 200) {
+            throw new AemetException("AEMET returned an error for " + path + ": " + envelope);
         }
 
-        String datos = restClient.get().uri(URI.create(respuesta.datos())).retrieve().body(String.class);
-        return jsonMapper.readValue(datos, tipo);
+        String data = restClient.get().uri(URI.create(envelope.dataUrl())).retrieve().body(String.class);
+        return jsonMapper.readValue(data, type);
     }
 
-    record AemetRespuesta(String descripcion, int estado, String datos) {
+    record AemetEnvelope(
+            @JsonProperty("descripcion") String description,
+            @JsonProperty("estado") int status,
+            @JsonProperty("datos") String dataUrl) {
     }
 }
