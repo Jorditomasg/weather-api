@@ -65,7 +65,7 @@ Prefix search, case and accent insensitive, sorted alphabetically.
 }
 ```
 
-Errors ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) format): `400` invalid parameters, `404` no forecast for tomorrow, `502` AEMET unavailable.
+Errors ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) format): `400` invalid parameters, `404` no forecast for tomorrow, `502` AEMET unavailable, `503` AEMET usage limit reached (with `Retry-After`).
 
 ## Architecture
 

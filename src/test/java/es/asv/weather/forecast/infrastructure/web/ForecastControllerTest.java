@@ -7,9 +7,11 @@ import es.asv.weather.forecast.domain.PrecipitationProbability;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -74,5 +76,15 @@ class ForecastControllerTest {
                 .willThrow(new ForecastNotFoundException("03002", LocalDate.of(2026, 10, 20)));
 
         assertThat(mvc.get().uri("/api/municipalities/03002/forecast")).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void returnsServiceUnavailableWithRetryAfterWhenAemetRateLimits() {
+        given(getTomorrowForecast.get("03002")).willThrow(HttpClientErrorException.create(
+                HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", HttpHeaders.EMPTY, new byte[0], null));
+
+        assertThat(mvc.get().uri("/api/municipalities/03002/forecast"))
+                .hasStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                .headers().hasValue(HttpHeaders.RETRY_AFTER, "60");
     }
 }
