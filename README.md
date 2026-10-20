@@ -95,3 +95,4 @@ es.asv.weather
 - **Average temperature**: AEMET publishes max and min, not the mean. We use `(max + min) / 2`, rounded to one decimal.
 - **Tomorrow**: computed in `Europe/Madrid` time (configurable), not the server's.
 - **Precipitation probability**: 6 hour periods are returned, as in the assignment example.
+- **Municipality cache**: the list barely changes and AEMET is slow, so it is kept in memory (Caffeine), preloaded at startup and refreshed in the background every 24 h (`municipality.cache.refresh-after`). If AEMET fails, the previous list keeps being served. It is a decorator of the repository port, so domain and use case are untouched.
