@@ -89,6 +89,7 @@ es.asv.weather
 - **Domain** and **use cases** depend neither on Spring nor on AEMET.
 - AEMET details (`id` prefix in codes, date format, 24/12/6 hour periods, Spanish field names) are translated inside the adapters and never leak out.
 - `shared` does not depend on any feature.
+- These rules, plus features not depending on each other, are enforced by `ArchitectureTest` (ArchUnit): breaking them fails the build.
 
 ### Decisions
 
