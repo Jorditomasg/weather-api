@@ -16,7 +16,7 @@ class ForecastConfig {
     @Bean
     GetTomorrowForecast getTomorrowForecast(ForecastRepository forecastRepository,
                                             @Value("${forecast.time-zone}") ZoneId timeZone,
-                                            @Value("${forecast.cache.ttl}") Duration cacheTtl) {
-        return new GetTomorrowForecast(new CachingForecastRepository(forecastRepository, cacheTtl), Clock.system(timeZone));
+                                            @Value("${forecast.cache.refresh-after}") Duration cacheRefreshAfter) {
+        return new GetTomorrowForecast(new CachingForecastRepository(forecastRepository, cacheRefreshAfter), Clock.system(timeZone));
     }
 }

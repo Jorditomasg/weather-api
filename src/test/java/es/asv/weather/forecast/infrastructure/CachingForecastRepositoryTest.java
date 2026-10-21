@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CachingForecastRepositoryTest {
 
-    private static final Duration TTL = Duration.ofMinutes(30);
+    private static final Duration REFRESH_AFTER = Duration.ofMinutes(30);
     private static final LocalDate TOMORROW = LocalDate.of(2026, 10, 21);
 
     private final DailyForecast agost = new DailyForecast(TOMORROW, 25, 14, List.of());
@@ -29,8 +29,9 @@ class CachingForecastRepositoryTest {
         return Optional.of(agost);
     };
 
-    private final CachingForecastRepository repository =
-            new CachingForecastRepository((code, date) -> aemet.findByMunicipalityAndDate(code, date), TTL, nanos::get);
+    // same-thread executor: background refreshes finish before the next assertion
+    private final CachingForecastRepository repository = new CachingForecastRepository(
+            (code, date) -> aemet.findByMunicipalityAndDate(code, date), REFRESH_AFTER, nanos::get, Runnable::run);
 
     @Test
     void callsAemetOnlyOncePerMunicipalityAndDayWhileFresh() {
@@ -42,10 +43,10 @@ class CachingForecastRepositoryTest {
     }
 
     @Test
-    void callsAemetAgainOnceExpired() {
+    void callsAemetAgainAfterRefreshPeriod() {
         repository.findByMunicipalityAndDate("03002", TOMORROW);
 
-        nanos.addAndGet(TTL.plusSeconds(1).toNanos());
+        nanos.addAndGet(REFRESH_AFTER.plusSeconds(1).toNanos());
         repository.findByMunicipalityAndDate("03002", TOMORROW);
 
         assertThat(aemetCalls).hasSize(2);
@@ -73,6 +74,18 @@ class CachingForecastRepositoryTest {
                 .isInstanceOf(AemetException.class);
 
         aemet = (code, date) -> Optional.of(agost);
+        assertThat(repository.findByMunicipalityAndDate("03002", TOMORROW)).contains(agost);
+    }
+
+    @Test
+    void keepsServingStaleForecastWhenRefreshFails() {
+        repository.findByMunicipalityAndDate("03002", TOMORROW);
+        aemet = (code, date) -> {
+            throw new AemetException("AEMET down");
+        };
+
+        nanos.addAndGet(REFRESH_AFTER.plusSeconds(1).toNanos());
+
         assertThat(repository.findByMunicipalityAndDate("03002", TOMORROW)).contains(agost);
     }
 }
