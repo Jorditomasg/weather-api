@@ -2,6 +2,8 @@
 
 REST API to get tomorrow's weather forecast for any municipality in Spain, backed by [AEMET OpenData](https://opendata.aemet.es/).
 
+The front end that consumes it lives in [weather-web](https://github.com/Jorditomasg/weather-web); its README explains how to run both together.
+
 ## Requirements
 
 - Java 25
